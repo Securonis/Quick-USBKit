@@ -4,16 +4,17 @@ import subprocess
 import psutil
 import shutil
 import time
+import fnmatch
+import json
 from datetime import datetime
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QPushButton, QLabel, QComboBox, 
                             QMessageBox, QProgressBar, QFileDialog, QTabWidget,
                             QTextEdit, QLineEdit, QGroupBox, QSpinBox, QCheckBox,
                             QSystemTrayIcon, QMenu, QDialog, QTableWidget,
-                            QTableWidgetItem, QHeaderView, QGridLayout)
+                            QTableWidgetItem, QHeaderView, QGridLayout, QInputDialog)
 from PyQt5.QtGui import QIcon, QPixmap, QFont
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QSize
-import json
 
 class USBOperation:
     FORMAT = "format"
@@ -58,7 +59,7 @@ class USBWorker(QThread):
         fs_type = self.params.get('fs_type', 'ntfs')
         
         self.status.emit(f"Formatting {device} with {fs_type}...")
-
+        # Implement actual formatting logic here
         for i in range(101):
             self.progress.emit(i)
             self.msleep(50)
@@ -81,7 +82,7 @@ class USBWorker(QThread):
         device = self.params.get('device')
         self.status.emit(f"Running benchmark on {device}...")
         
-
+        # Simulate read/write speed tests
         results = {
             'seq_read': 120.5,  # MB/s
             'seq_write': 85.3,
@@ -104,7 +105,7 @@ class USBWorker(QThread):
     def check_health(self):
         device = self.params.get('device')
         self.status.emit(f"Checking health of {device}...")
-
+        # SMART bilgilerini kontrol et
         for i in range(101):
             self.progress.emit(i)
             self.msleep(30)
@@ -149,21 +150,21 @@ class SettingsDialog(QDialog):
     def init_ui(self):
         layout = QVBoxLayout()
         
-
+        # Title Label
         title_label = QLabel("Settings")
         title_label.setFont(QFont('Arial', 16, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         
-
+        # General Settings
         general_group = QGroupBox("General Settings")
         general_layout = QVBoxLayout()
         
- 
+        # System Tray Settings
         self.minimize_to_tray = QCheckBox("Minimize to System Tray")
         general_layout.addWidget(self.minimize_to_tray)
         
-     
+        # Auto Refresh Settings
         self.auto_refresh = QCheckBox("Auto-refresh Device List")
         refresh_interval_layout = QHBoxLayout()
         refresh_interval_label = QLabel("Refresh Interval (seconds):")
@@ -176,21 +177,21 @@ class SettingsDialog(QDialog):
         general_layout.addWidget(self.auto_refresh)
         general_layout.addLayout(refresh_interval_layout)
         
-
+        # Notification Settings
         self.show_notifications = QCheckBox("Show System Notifications")
         general_layout.addWidget(self.show_notifications)
         
         general_group.setLayout(general_layout)
         
-
+        # Backup Settings
         backup_group = QGroupBox("Backup Settings")
         backup_layout = QVBoxLayout()
         
-
+        # Auto Backup
         self.auto_backup = QCheckBox("Enable Auto-backup")
         backup_layout.addWidget(self.auto_backup)
         
-
+        # Backup Path
         backup_path_layout = QHBoxLayout()
         backup_path_label = QLabel("Default Backup Location:")
         self.backup_path = QLineEdit()
@@ -200,7 +201,7 @@ class SettingsDialog(QDialog):
         backup_path_layout.addWidget(self.backup_path)
         backup_path_layout.addWidget(browse_btn)
         
-  
+        # Backup Schedule
         schedule_layout = QHBoxLayout()
         schedule_label = QLabel("Backup Schedule:")
         self.schedule_combo = QComboBox()
@@ -212,21 +213,21 @@ class SettingsDialog(QDialog):
         backup_layout.addLayout(schedule_layout)
         backup_group.setLayout(backup_layout)
         
-
+        # Security Settings
         security_group = QGroupBox("Security Settings")
         security_layout = QVBoxLayout()
         
- 
+        # Encryption
         self.default_encryption = QCheckBox("Enable Default Encryption")
         security_layout.addWidget(self.default_encryption)
         security_group.setLayout(security_layout)
         
-      
+        # Add all groups to main layout
         layout.addWidget(general_group)
         layout.addWidget(backup_group)
         layout.addWidget(security_group)
         
-       
+        # Buttons
         button_layout = QHBoxLayout()
         save_btn = QPushButton("Save")
         cancel_btn = QPushButton("Cancel")
@@ -242,13 +243,14 @@ class SettingsDialog(QDialog):
         self.setLayout(layout)
 
     def load_current_settings(self):
-      
+        # Varsayılan değerleri yükle
         self.minimize_to_tray.setChecked(True)
         self.auto_refresh.setChecked(True)
         self.show_notifications.setChecked(True)
         self.auto_backup.setChecked(False)
         self.default_encryption.setChecked(False)
         
+        # Varsayılan yedekleme yolu
         default_backup_path = os.path.join(os.path.expanduser("~"), "USBKit_Backups")
         self.backup_path.setText(default_backup_path)
 
@@ -263,7 +265,7 @@ class SettingsDialog(QDialog):
             self.backup_path.setText(folder)
 
     def accept(self):
-       
+        # Ayarları kaydet
         settings = {
             'minimize_to_tray': self.minimize_to_tray.isChecked(),
             'auto_refresh': self.auto_refresh.isChecked(),
@@ -275,22 +277,22 @@ class SettingsDialog(QDialog):
             'default_encryption': self.default_encryption.isChecked()
         }
         
-        
+        # Ana pencereye ayarları gönder
         self.parent.apply_settings(settings)
         super().accept()
 
 class QuickUSBKit(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.is_dark_mode = False  
-        self.setWindowTitle('Quick USBKit')
+        self.is_dark_mode = False  # Tema durumunu takip etmek için
+        self.setWindowTitle('Quick USBKit Pro')
         self.setGeometry(100, 100, 1000, 700)
         self.init_ui()
         self.init_system_tray()
         self.init_timers()
         self.load_settings()
         self.refresh_devices()
-        self.apply_light_theme()  
+        self.apply_light_theme()  # Varsayılan tema
 
     def init_ui(self):
         # Main widget and layout
@@ -301,7 +303,7 @@ class QuickUSBKit(QMainWindow):
         # Header with logo and title
         header_layout = QHBoxLayout()
         logo_label = QLabel()
-        logo_pixmap = QPixmap('/usr/share/icons/securonis/icon4.png')
+        logo_pixmap = QPixmap('icon4.png')
         logo_label.setPixmap(logo_pixmap.scaled(48, 48, Qt.KeepAspectRatio))
         title_label = QLabel("Quick USBKit Pro")
         title_label.setFont(QFont('Arial', 16, QFont.Bold))
@@ -332,13 +334,13 @@ class QuickUSBKit(QMainWindow):
     def create_main_tab(self):
         tab = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(10) 
-        layout.setContentsMargins(10, 10, 10, 10)  
+        layout.setSpacing(10)  # Widget'lar arası boşluk
+        layout.setContentsMargins(10, 10, 10, 10)  # Kenar boşlukları
         
         # Device selection
         device_group = QGroupBox("USB Devices")
         device_layout = QHBoxLayout()
-        device_layout.setContentsMargins(10, 15, 10, 10)  
+        device_layout.setContentsMargins(10, 15, 10, 10)  # İç kenar boşlukları
         
         self.device_combo = QComboBox()
         refresh_btn = QPushButton("Refresh")
@@ -526,17 +528,17 @@ class QuickUSBKit(QMainWindow):
         self.tray_icon.show()
 
     def init_timers(self):
-        # Auto-refresh timer
+        # Auto-refresh timer (30 saniye)
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh_devices)
         self.refresh_timer.start(30000)
         
-        # Monitoring timer 
+        # Monitoring timer (5 saniye)
         self.monitor_timer = QTimer()
         self.monitor_timer.timeout.connect(self.update_monitoring)
         self.monitor_timer.start(5000)
         
-        # Memory cleanup timer 
+        # Memory cleanup timer (5 dakika)
         self.cleanup_timer = QTimer()
         self.cleanup_timer.timeout.connect(self.cleanup_memory)
         self.cleanup_timer.start(300000)
@@ -550,7 +552,7 @@ class QuickUSBKit(QMainWindow):
                     self.log_status("Settings loaded successfully")
         except Exception as e:
             self.log_status(f"Error loading settings: {str(e)}")
-           
+            # Varsayılan ayarları kullan
             default_settings = {
                 'minimize_to_tray': True,
                 'auto_refresh': True,
@@ -574,10 +576,10 @@ class QuickUSBKit(QMainWindow):
                 'minimize_to_tray': self.tray_icon.isVisible(),
                 'auto_refresh': self.refresh_timer.isActive(),
                 'refresh_interval': self.refresh_timer.interval() // 1000,
-                'show_notifications': True,  
-                'auto_backup': False,  
+                'show_notifications': True,  # Varsayılan değer
+                'auto_backup': False,  # Varsayılan değer
                 'backup_path': os.path.join(os.path.expanduser("~"), "USBKit_Backups"),
-                'backup_schedule': "Daily"  
+                'backup_schedule': "Daily"  # Varsayılan değer
             }
             self.save_settings_to_file(settings)
         except Exception as e:
@@ -592,11 +594,11 @@ class QuickUSBKit(QMainWindow):
             stats += "=" * 50 + "\n"
             
             for i, device in enumerate(devices):
-            
+                # Tablo güncellemesi
                 self.monitoring_table.setItem(i, 0, QTableWidgetItem(device['device']))
-                self.monitoring_table.setItem(i, 1, QTableWidgetItem("45°C"))  
+                self.monitoring_table.setItem(i, 1, QTableWidgetItem("45°C"))  # Simüle edilmiş sıcaklık
                 
-            
+                # Sağlık durumu hesaplama
                 health_status = "Good"
                 if device['percent'] > 90:
                     health_status = "Warning"
@@ -606,7 +608,7 @@ class QuickUSBKit(QMainWindow):
                 self.monitoring_table.setItem(i, 2, QTableWidgetItem(health_status))
                 self.monitoring_table.setItem(i, 3, QTableWidgetItem(f"{device['percent']}%"))
                 
-  
+                # İstatistik metni oluşturma
                 stats += f"\nDevice: {device['device']}\n"
                 stats += f"Filesystem: {device['fstype']}\n"
                 stats += f"Total Space: {device['total'] / (1024**3):.2f} GB\n"
@@ -684,16 +686,83 @@ class QuickUSBKit(QMainWindow):
             QMessageBox.critical(self, "Error", f"Failed to mount device: {str(e)}")
 
     def unmount_usb(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                self.log_status(f"Unmounting {device}...")
+                # For Windows:
+                if sys.platform == 'win32':
+                    subprocess.run(['mountvol', device, '/P'])
+                # For Linux:
+                else:
+                    subprocess.run(['umount', device])
+                self.log_status(f"Device {device} unmounted successfully")
+                self.refresh_devices()
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Unmount error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to unmount device: {str(e)}")
 
     def eject_usb(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                self.log_status(f"Ejecting {device}...")
+                # Önce unmount işlemi
+                self.unmount_usb()
+                # Windows için güvenli kaldırma
+                if sys.platform == 'win32':
+                    subprocess.run(['powershell', 'Remove-PnpDevice', '-InstanceId', device, '-Confirm:$false'])
+                self.log_status(f"Device {device} ejected successfully")
+                self.refresh_devices()
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Eject error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to eject device: {str(e)}")
 
     def encrypt_usb(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                password, ok = QInputDialog.getText(self, 'Set Password', 
+                                                 'Enter password:', QLineEdit.Password)
+                if ok and password:
+                    self.log_status(f"Encrypting {device}...")
+                    # BitLocker for Windows
+                    if sys.platform == 'win32':
+                        subprocess.run(['manage-bde', '-on', device, '-pw'])
+                    # LUKS for Linux
+                    else:
+                        subprocess.run(['cryptsetup', 'luksFormat', device])
+                    self.log_status(f"Device {device} encrypted successfully")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Encryption error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Encryption failed: {str(e)}")
 
     def decrypt_usb(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                password, ok = QInputDialog.getText(self, 'Şifre', 
+                                                 'Şifreyi giriniz:', QLineEdit.Password)
+                if ok and password:
+                    self.log_status(f"Decrypting {device}...")
+                    # Windows için BitLocker
+                    if sys.platform == 'win32':
+                        subprocess.run(['manage-bde', '-off', device])
+                    # Linux için LUKS
+                    else:
+                        subprocess.run(['cryptsetup', 'luksOpen', device, 'decrypted_usb'])
+                    self.log_status(f"Device {device} decrypted successfully")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Decryption error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Decryption failed: {str(e)}")
 
     def secure_erase(self):
         if self.show_confirmation("This will permanently erase all data. Continue?"):
@@ -703,13 +772,78 @@ class QuickUSBKit(QMainWindow):
             })
 
     def change_password(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                old_password, ok1 = QInputDialog.getText(self, 'Eski Şifre', 
+                                                      'Mevcut şifreyi giriniz:', QLineEdit.Password)
+                if ok1:
+                    new_password, ok2 = QInputDialog.getText(self, 'Yeni Şifre', 
+                                                          'Yeni şifreyi giriniz:', QLineEdit.Password)
+                    if ok2:
+                        self.log_status(f"Changing password for {device}...")
+                        # Windows için BitLocker
+                        if sys.platform == 'win32':
+                            subprocess.run(['manage-bde', '-changepassword', device])
+                        # Linux için LUKS
+                        else:
+                            subprocess.run(['cryptsetup', 'luksChangeKey', device])
+                        self.log_status("Password changed successfully")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Password change error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Password change failed: {str(e)}")
 
     def create_backup(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                backup_dir = QFileDialog.getExistingDirectory(self, "Yedek Konumu Seçin")
+                if backup_dir:
+                    self.log_status(f"Creating backup of {device}...")
+                    backup_file = os.path.join(backup_dir, f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.img")
+                    
+                    # DD komutu ile yedekleme
+                    if sys.platform == 'win32':
+                        subprocess.run(['wbadmin', 'start', 'backup', 
+                                     '-backupTarget:', backup_dir, 
+                                     '-include:', device])
+                    else:
+                        subprocess.run(['dd', f'if={device}', f'of={backup_file}', 'bs=4M', 'status=progress'])
+                    
+                    self.log_status(f"Backup completed: {backup_file}")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Backup error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Backup failed: {str(e)}")
 
     def restore_backup(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                backup_file, _ = QFileDialog.getOpenFileName(self, "Select Backup File", 
+                                                           filter="Image files (*.img);;All files (*.*)")
+                if backup_file:
+                    if self.show_confirmation("This operation will erase all data on the device. Do you want to continue?"):
+                        self.log_status(f"Restoring backup to {device}...")
+                        
+                        # DD command for restoration
+                        if sys.platform == 'win32':
+                            subprocess.run(['wbadmin', 'start', 'recovery', 
+                                         '-version:', backup_file, 
+                                         '-itemType:', 'Volume', 
+                                         '-items:', device])
+                        else:
+                            subprocess.run(['dd', f'if={backup_file}', f'of={device}', 'bs=4M', 'status=progress'])
+                        
+                        self.log_status("Backup restored successfully")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Restore error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Restore failed: {str(e)}")
 
     def schedule_backup(self):
         pass
@@ -728,22 +862,144 @@ class QuickUSBKit(QMainWindow):
         })
 
     def scan_errors(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                self.log_status(f"Scanning {device} for errors...")
+                
+                # Windows için chkdsk, Linux için fsck
+                if sys.platform == 'win32':
+                    subprocess.run(['chkdsk', device, '/f'])
+                else:
+                    subprocess.run(['fsck', '-f', device])
+                
+                self.log_status("Error scan completed")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Error scan failed: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Scan failed: {str(e)}")
 
     def show_smart_info(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                self.log_status(f"Reading S.M.A.R.T. information from {device}...")
+                
+                # Windows için wmic, Linux için smartctl
+                if sys.platform == 'win32':
+                    result = subprocess.run(['wmic', 'diskdrive', 'get', 'status'], 
+                                         capture_output=True, text=True)
+                else:
+                    result = subprocess.run(['smartctl', '-a', device], 
+                                          capture_output=True, text=True)
+                
+                # Sonuçları göster
+                smart_dialog = QDialog(self)
+                smart_dialog.setWindowTitle("S.M.A.R.T. Information")
+                smart_dialog.setMinimumWidth(500)
+                
+                layout = QVBoxLayout()
+                text_edit = QTextEdit()
+                text_edit.setReadOnly(True)
+                text_edit.setText(result.stdout)
+                layout.addWidget(text_edit)
+                
+                smart_dialog.setLayout(layout)
+                smart_dialog.exec_()
+                
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"S.M.A.R.T. info error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to get S.M.A.R.T. info: {str(e)}")
 
     def defragment_usb(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                self.log_status(f"Starting defragmentation of {device}...")
+                
+                # Windows için defrag, Linux için e4defrag
+                if sys.platform == 'win32':
+                    subprocess.run(['defrag', device, '/U', '/V'])
+                else:
+                    subprocess.run(['e4defrag', device])
+                
+                self.log_status("Defragmentation completed")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Defragmentation error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Defragmentation failed: {str(e)}")
 
     def clean_junk(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                self.log_status(f"Cleaning junk files from {device}...")
+                
+                # Gereksiz dosya türleri
+                junk_patterns = ['*.tmp', '*.temp', 'Thumbs.db', '.DS_Store']
+                
+                for pattern in junk_patterns:
+                    # Windows ve Linux uyumlu temizlik
+                    for root, dirs, files in os.walk(device):
+                        for file in files:
+                            if fnmatch.fnmatch(file.lower(), pattern.lower()):
+                                try:
+                                    os.remove(os.path.join(root, file))
+                                    self.log_status(f"Removed: {file}")
+                                except:
+                                    continue
+            
+            self.log_status("Junk cleaning completed")
+        except Exception as e:
+            self.log_status(f"Cleaning error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Cleaning failed: {str(e)}")
 
     def fix_errors(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                self.log_status(f"Attempting to fix errors on {device}...")
+                
+                # Windows için chkdsk, Linux için fsck
+                if sys.platform == 'win32':
+                    subprocess.run(['chkdsk', device, '/f', '/r'])
+                else:
+                    subprocess.run(['fsck', '-y', device])
+                
+                self.log_status("Error fixing completed")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Error fixing failed: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Fixing failed: {str(e)}")
 
     def update_firmware(self):
-        pass
+        try:
+            device = self.device_combo.currentText()
+            if device and device != "No USB devices found":
+                # Select firmware file
+                firmware_file, _ = QFileDialog.getOpenFileName(self, "Select Firmware File", 
+                                                             filter="Firmware files (*.bin *.fw);;All files (*.*)")
+                if firmware_file:
+                    if self.show_confirmation("Firmware update is a risky operation. Do you want to continue?"):
+                        self.log_status(f"Updating firmware for {device}...")
+                        
+                        # fwupd for Windows, flashrom for Linux
+                        if sys.platform == 'win32':
+                            subprocess.run(['fwupdate', '-a', firmware_file])
+                        else:
+                            subprocess.run(['flashrom', '-w', firmware_file])
+                        
+                        self.log_status("Firmware update completed")
+            else:
+                QMessageBox.warning(self, "Warning", "Please select a valid USB device!")
+        except Exception as e:
+            self.log_status(f"Firmware update error: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Firmware update failed: {str(e)}")
 
     def start_operation(self, operation, params):
         try:
@@ -751,12 +1007,15 @@ class QuickUSBKit(QMainWindow):
                 QMessageBox.warning(self, "Warning", "Please select a USB device first!")
                 return
             
-            self.worker = USBWorker(operation, params)
-            self.worker.progress.connect(self.progress_bar.setValue)
-            self.worker.status.connect(self.log_status)
-            self.worker.finished.connect(self.operation_finished)
-            self.worker.start()
-        
+            if not hasattr(self, 'worker') or not self.worker.isRunning():
+                self.worker = USBWorker(operation, params)
+                self.worker.progress.connect(self.progress_bar.setValue)
+                self.worker.status.connect(self.log_status)
+                self.worker.finished.connect(self.operation_finished)
+                self.worker.start()
+            else:
+                QMessageBox.warning(self, "Warning", "An operation is already in progress!")
+            
         except Exception as e:
             self.log_status(f"Error starting operation: {str(e)}")
             QMessageBox.critical(self, "Error", f"Failed to start operation: {str(e)}")
@@ -879,22 +1138,22 @@ class QuickUSBKit(QMainWindow):
 
     def apply_settings(self, settings):
         """Apply the new settings"""
-     
+        # Sistem tepsisi ayarları
         self.tray_icon.setVisible(settings['minimize_to_tray'])
         
-      
+        # Otomatik yenileme ayarları
         if settings['auto_refresh']:
             self.refresh_timer.start(settings['refresh_interval'] * 1000)
         else:
             self.refresh_timer.stop()
         
- 
+        # Yedekleme ayarları
         if settings['auto_backup']:
-       
+            # Yedekleme zamanlayıcısını ayarla
             backup_schedule = settings['backup_schedule']
-         
+            # ... yedekleme mantığını uygula
         
-
+        # Ayarları kaydet
         self.save_settings_to_file(settings)
 
     def save_settings_to_file(self, settings):
