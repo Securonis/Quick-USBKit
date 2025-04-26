@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import os
 import subprocess
@@ -284,8 +285,8 @@ class SettingsDialog(QDialog):
 class QuickUSBKit(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.is_dark_mode = False  # Tema durumunu takip etmek için
-        self.setWindowTitle('Quick USBKit Pro')
+        self.is_dark_mode = False  
+        self.setWindowTitle('Quick USBKit')
         self.setGeometry(100, 100, 1000, 700)
         self.init_ui()
         self.init_system_tray()
@@ -303,9 +304,9 @@ class QuickUSBKit(QMainWindow):
         # Header with logo and title
         header_layout = QHBoxLayout()
         logo_label = QLabel()
-        logo_pixmap = QPixmap('icon4.png')
+        logo_pixmap = QPixmap('/usr/share/icons/securonis/icon4.png')
         logo_label.setPixmap(logo_pixmap.scaled(48, 48, Qt.KeepAspectRatio))
-        title_label = QLabel("Quick USBKit Pro")
+        title_label = QLabel("Quick USBKit")
         title_label.setFont(QFont('Arial', 16, QFont.Bold))
         
         header_layout.addWidget(logo_label)
